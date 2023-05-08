@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Kanban Board</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+
+      .board {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        margin-left: 70px;
+        margin-right: 7 0px;
+      }
+
+      .column {
+        width: 30%;
+        padding: 10px;
+        background-color: #f7f7f7;
+        border-radius: 5px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+      }
+
+      .column header {
+        background-color: #5a5a5a;
+        color: #fff;
+        padding: 10px;
+        border-radius: 5px 5px 0 0;
+        text-align: center;
+      }
+
+      .card {
+        background-color: #fff;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+      }
+
+      .card:hover {
+        box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+      }
+
+      .task-form {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-center;
+      }
+
+      .task-form label {
+        margin: 10px 0;
+      }
+
+      .task-form input,
+      .task-form select {
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        margin: 0 10px;
+      }
+
+      .task-form select {
+        width: 100%;
+      }
+
+      .task-form button {
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        background-color: #5a5a5a;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+      }
+
+      .task-form button:hover {
+        background-color: #fff;
+        color: #5a5a5a;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+      }
+      .delete-button {
+        margin-left: 10px;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        background-color: #5a5a5a;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+      }
+
+      .delete-button:hover {
+        background-color: #fff;
+        color: #5a5a5a;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <h1 style="margin-left: 100px">Non Procrastinator</h1>
+    <br />
+    <div class="board">
+      <div class="column" id="todo">
+        <header>TO DO</header>
+        <br />
+        <form class="task-form">
+          <label for="task">TASK:</label>
+          <input type="text" id="task" name="task" /><br />
+          <label for="project">PROJECT:</label>
+          <input type="text" id="project" name="project" /><br />
+          <button type="button" onclick="addCard()">ADD</button>
+        </form>
+      </div>
+      <div class="column" id="in-progress">
+        <header>IN PROGRESS</header>
+      </div>
+      <div class="column" id="done">
+        <header>DONE</header>
+      </div>
+    </div>
+
+    <script>
+      function addCard() {
+        const task = document.getElementById("task").value;
+        const project = document.getElementById("project").value;
+
+        if (!task || !project) {
+          alert("Please enter a task and project");
+          return;
+        }
+
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.textContent = task + " (" + project + ")";
+
+        // Check if card is being added for the first time or loaded from storage
+        if (!this.getAttribute("data-from-storage")) {
+          // If card is being added for the first time, add drag and drop functionality
+          card.setAttribute("draggable", "true");
+          card.addEventListener("dragstart", dragStart);
+          card.addEventListener("dragend", dragEnd);
+
+          // Add delete button to card
+          const deleteButton = document.createElement("button");
+          deleteButton.classList.add("delete-button");
+          deleteButton.textContent = "X";
+          deleteButton.addEventListener("click", deleteCard);
+          card.appendChild(deleteButton);
+        } else {
+          // If card is being loaded from storage, remove the data-from-storage attribute
+          this.removeAttribute("data-from-storage");
+        }
+
+        // Add card to the Todo column
+        document.getElementById("todo").appendChild(card);
+
+        // Save cards to local storage
+        saveCards();
+      }
+
+      function deleteCard() {
+        const card = this.parentElement;
+        card.remove();
+
+        // Save cards to local storage
+        saveCards();
+      }
+
+      function dragStart() {
+        draggedCard = this;
+        setTimeout(() => {
+          this.style.opacity = "0.5";
+        }, 0);
+      }
+
+      function dragEnd() {
+        draggedCard.style.opacity = "1";
+      }
+
+      function dragOver(event) {
+        event.preventDefault();
+        this.classList.add("hovered");
+      }
+
+      function drop(event) {
+        event.preventDefault();
+        this.classList.remove("hovered");
+        this.appendChild(draggedCard);
+        saveTasks();
+      }
+
+      function deleteTask(taskCard) {
+        taskCard.remove();
+        saveTasks();
+      }
+
+      function saveTasks() {
+        const todoCards = document.querySelectorAll("#todo .card");
+        const inProgressCards = document.querySelectorAll("#in-progress .card");
+        const doneCards = document.querySelectorAll("#done .card");
+
+        console.log(todoCards);
+        const todoTasks = Array.from(todoCards).map((card) => card.textContent);
+        const inProgressTasks = Array.from(inProgressCards).map(
+          (card) => card.textContent
+        );
+        const doneTasks = Array.from(doneCards).map((card) => card.textContent);
+
+        const tasks = {
+          todo: todoTasks,
+          inProgress: inProgressTasks,
+          done: doneTasks,
+        };
+
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+      }
+
+      function loadTasks() {
+        const tasks = JSON.parse(localStorage.getItem("tasks"));
+
+        if (tasks) {
+          const todoCards = tasks.todo.map(createCard);
+          const inProgressCards = tasks.inProgress.map(createCard);
+          const doneCards = tasks.done.map(createCard);
+
+          todoCards.forEach((card) =>
+            document.getElementById("todo").appendChild(card)
+          );
+          inProgressCards.forEach((card) =>
+            document.getElementById("in-progress").appendChild(card)
+          );
+          doneCards.forEach((card) =>
+            document.getElementById("done").appendChild(card)
+          );
+        }
+      }
+
+      function createCard(text) {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.textContent = text;
+        card.setAttribute("draggable", "true");
+        card.addEventListener("dragstart", dragStart);
+        card.addEventListener("dragend", dragEnd);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "Delete";
+        deleteButton.classList.add("delete-button");
+        deleteButton.addEventListener("click", () => {
+          deleteTask(card);
+        });
+
+        card.appendChild(deleteButton);
+        return card;
+      }
+
+      const columns = document.querySelectorAll(".column");
+      let draggedCard = null;
+
+      columns.forEach((column) => {
+        column.addEventListener("dragover", dragOver);
+        column.addEventListener("drop", drop);
+      });
+
+      loadTasks();
+    </script>
+  </body>
+</html>
